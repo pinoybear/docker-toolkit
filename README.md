@@ -12,12 +12,14 @@ Every script here exists because something simpler failed in practice. The desig
 
 | Script | Runs | What it does |
 |---|---|---|
-| `bin/docker-backup.sh` | nightly (timer) | Backs up everything under `/opt` into one verified `.tar.gz`. Each running stack is stopped, copied and restarted on its own; stacks you list are copied live instead. It then waits until every container is running and, if it has a healthcheck, healthy. It also recovers containers left paused by another job, and restarts anything it stopped if it's killed mid-run. It skips bulky rebuildable data (caches, thumbnails, models, logs) and prunes old backups. It warns when a backup suddenly grows, and sends one alert listing everything that went wrong. `--dry-run` shows the plan without touching anything. |
-| `bin/check-docker-updates.sh` | weekly (timer) | **Check-only.** Pulls every running stack's images and compares what each container actually runs with what's now available. It sends a report only when something has an update or a pull failed. It never restarts or recreates anything. |
-| `bin/update-docker.sh` | by hand | Interactive updater. Scans every stack, running or stopped, and shows each service's **Running vs New** version, build date and image digest. Then choose: update **all**, **exclude** some, or **cancel**. Running stacks are recreated and waited on until healthy; stopped stacks only get the new image and stay stopped. `--check` scans and reports without prompting. |
+| [`bin/docker-backup.sh`](docs/docker-backup.md) | nightly (timer) | Backs up everything under `/opt` into one verified `.tar.gz`. Each running stack is stopped, copied and restarted on its own; stacks you list are copied live instead. It then waits until every container is running and, if it has a healthcheck, healthy. It also recovers containers left paused by another job, and restarts anything it stopped if it's killed mid-run. It skips bulky rebuildable data (caches, thumbnails, models, logs) and prunes old backups. It warns when a backup suddenly grows, and sends one alert listing everything that went wrong. `--dry-run` shows the plan without touching anything. |
+| [`bin/check-docker-updates.sh`](docs/check-docker-updates.md) | weekly (timer) | **Check-only.** Pulls every running stack's images and compares what each container actually runs with what's now available. It sends a report only when something has an update or a pull failed. It never restarts or recreates anything. |
+| [`bin/update-docker.sh`](docs/update-docker.md) | by hand | Interactive updater. Scans every stack, running or stopped, and shows each service's **Running vs New** version, build date and image digest. Then choose: update **all**, **exclude** some, or **cancel**. Running stacks are recreated and waited on until healthy; stopped stacks only get the new image and stay stopped. `--check` scans and reports without prompting. |
 | `bin/kuma-maintenance.py` | optional | Puts [Uptime Kuma](https://github.com/louislam/uptime-kuma) monitors into maintenance while stacks are stopped for the backup, so you don't get false alerts. |
 
 Notifications go to [ntfy](https://ntfy.sh) and/or email via `msmtp`, using the same four settings as my other repos. Setup for both is covered in [homelab-notifications](https://github.com/pinoybear/homelab-notifications).
+
+Each script has its own page with the full details, including **how to restore** a backup: see [**docs/**](docs/README.md).
 
 ## Two things other scripts get wrong
 
