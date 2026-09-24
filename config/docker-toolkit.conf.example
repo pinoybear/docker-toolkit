@@ -1,0 +1,91 @@
+# ===============================================================
+# File:     /etc/docker-toolkit.conf
+# Purpose:  Shared site configuration for every script in docker-toolkit
+#           (docker-backup.sh, check-docker-updates.sh, update-docker.sh).
+#           Sourced by bash, so use bash syntax. Keep it root-owned and
+#           mode 600 -- it can hold your notification token.
+#
+#           Override the path per-run with DOCKER_TOOLKIT_CONF=/path.
+# ===============================================================
+
+# --- Where your Compose stacks live ---------------------------------
+# STACK_ROOTS: folders whose immediate subfolders are each one Compose
+# project (Dockge's /opt/stacks layout). EXTRA_STACKS: individual project
+# folders outside those roots. A folder counts as a stack if it contains
+# compose.yaml, compose.yml, docker-compose.yaml or docker-compose.yml.
+STACK_ROOTS=(/opt/stacks)
+EXTRA_STACKS=(/opt/dockge)
+
+# --- Notifications (see github.com/pinoybear/homelab-notifications) ---
+# Leave a channel empty to disable it. Scripts run as root, so email uses
+# root's msmtp config (/root/.msmtprc).
+NTFY_URL=""                  # e.g. "http://ntfy.lan/docker"
+NTFY_TOKEN=""                # ntfy access token (tk_...), empty for open topics
+EMAIL_TO=""                  # e.g. "you@example.com"
+MSMTP_ACCOUNT="default"      # account name from root's msmtp config
+HOST_LABEL="$(hostname)"     # name used in notification text
+
+# --- docker-backup.sh -----------------------------------------------
+# Everything under BACKUP_SOURCE is backed up into one .tar.gz per run.
+# Folders listed in STACK_ROOTS are "opened up": each stack inside is
+# stopped / copied / restarted on its own. Any other folder under
+# BACKUP_SOURCE is copied as-is (plain config, no Docker handling).
+BACKUP_SOURCE="/opt"
+BACKUP_DEST="/mnt/backup/docker"          # e.g. an NFS/SMB mount or a second disk
+BACKUP_PREFIX="$(hostname)-docker_backup" # tarball: <prefix>-YYMMDD_HHMMSS.tar.gz
+BACKUP_KEEP=14                            # newest N tarballs kept, older ones deleted
+BACKUP_LOG="/var/log/docker-backup.log"
+
+# Names (top-level folders or stack names) never backed up at all:
+# package/runtime internals that are trivially reinstalled.
+BACKUP_SKIP=(containerd docker-runtime)
+
+# Stacks copied WHILE RUNNING instead of being stopped first. Use for
+# stacks with no database/state that needs quiescing, or whose brief
+# downtime causes more harm than good (monitoring, MQTT brokers, reverse
+# proxies, webhook receivers that would drop events while stopped).
+LIVE_BACKUP_STACKS=()        # e.g. (uptime-kuma mosquitto npm)
+
+# Docker *named volumes* to include, as "stack:volume". Bind mounts under
+# BACKUP_SOURCE are covered automatically; named volumes live under
+# /var/lib/docker/volumes and are NOT, so list the ones holding real state.
+NAMED_VOLUME_BACKUPS=()      # e.g. ("myapp:myapp_db_data")
+
+# rsync excludes applied to every folder.
+BACKUP_GLOBAL_EXCLUDES=('*/cache/*' '*/Cache/*' '*/.cache/*' '*.log*' '*/tmp/*' '*.bak' '*.sock')
+
+# Per-stack rsync excludes, as "stack|pattern" (one pattern per entry, so
+# patterns may contain spaces). The stack name is the folder name. These
+# defaults cover large, rebuildable data in common self-hosted apps; they
+# do nothing for stacks you don't have.
+STACK_EXCLUDES=(
+    "plex|*/Media/*"            "plex|*/Metadata/*"         "plex|*/Cache/*"
+    "plex|*/Drivers/*"          "plex|*/Crash Reports/*"    "plex|*/Updates/*"
+    "plex|*library.db-20*"      "plex|*blobs.db-20*"
+    "jellyfin|*/config/data/data/trickplay/*"   "jellyfin|*/config/data/data/subtitles/*"
+    "jellyfin|*/config/data/data/attachments/*" "jellyfin|*/config/data/metadata/*"
+    "jellyfin|*/config/cache/*" "jellyfin|*/config/log/*"
+    "frigate|*/clips/*"         "frigate|*/recordings/*"    "frigate|*/models/*"
+    "nextcloud|*/previews/*"    "nextcloud|*/backups/*"
+    "sonarr|*/MediaCover/*"     "radarr|*/MediaCover/*"     "lidarr|*/MediaCover/*"
+    "prowlarr|*/Sentry/*"       "arrs|*/MediaCover/*"       "arrs|*/Sentry/*"
+    "sabnzbd|*/config/logs/*"   "sabnzbd|*/incomplete/*"    "sabnzbd|*/complete/*"
+    "npm|*/data/logs/*"
+    "ollama|*/ollama-data/models/*"
+    "changedetection|*.tar.gz"
+)
+
+# Warn (non-fatal) when a new tarball is this many percent bigger than the
+# previous one -- usually a new folder without the right excludes.
+BACKUP_GROWTH_WARN_PERCENT=10
+
+# Optional: put Uptime Kuma monitors into maintenance while stacks are
+# stopped. Needs bin/kuma-maintenance.py and a Manual-strategy maintenance
+# entry in each Kuma instance: "base_url|maintenance_id".
+KUMA_MAINTENANCE=()          # e.g. ("http://kuma.lan:3001|5")
+KUMA_HELPER="/usr/local/bin/kuma-maintenance.py"
+KUMA_CREDENTIALS_FILE="/root/.config/kuma.env"   # defines KUMA_USER / KUMA_PASSWORD
+
+# --- check-docker-updates.sh / update-docker.sh ------------------------
+UPDATE_CHECK_LOG="/var/log/check-docker-updates.log"
+UPDATE_WAIT_TIMEOUT=120      # seconds update-docker.sh waits for a stack to be healthy

@@ -1,0 +1,7 @@
+# Never commit real site config or credentials
+docker-toolkit.conf
+kuma.env
+*.env
+*.log
+__pycache__/
+*.pyc

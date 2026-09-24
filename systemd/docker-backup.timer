@@ -1,0 +1,9 @@
+[Unit]
+Description=Run the Docker stacks backup nightly
+
+[Timer]
+OnCalendar=*-*-* 00:35:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

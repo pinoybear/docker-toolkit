@@ -1,0 +1,11 @@
+[Unit]
+Description=Docker Compose stacks backup (docker-toolkit)
+# The destination is often a network mount: wait for it.
+Wants=network-online.target remote-fs.target
+After=network-online.target remote-fs.target docker.service
+# Optional: chain a follow-up job only when the backup succeeded, e.g.
+# OnSuccess=influxdb-backup.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/docker-backup.sh
